@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "--- Saving current commit SHA as last successful build"
+
+# Only run if build passed
+if [[ "$BUILDKITE_JOB_EXIT_STATUS" == "0" ]]; then
+  BRANCH_NAME="${BUILDKITE_BRANCH:-default}"
+  META_KEY="last-successful-sha--${BRANCH_NAME}"
+  CURRENT_SHA=$(git rev-parse HEAD)
+
+  echo "Saving $CURRENT_SHA to metadata key $META_KEY"
+  buildkite-agent meta-data set "$META_KEY" "$CURRENT_SHA"
+else
+  echo "Build failed. Not updating last successful SHA."
+fi

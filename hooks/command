@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -euo pipefail
+
+echo "--- Calculating Git changelog since last successful build"
+
+FALLBACK_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-10}"
+SHOW_ANNOTATION="${BUILDKITE_PLUGIN_SHOW_ANNOTATION:-true}"
+
+# Get current SHA
+CURRENT_SHA=$(git rev-parse HEAD)
+BRANCH_NAME="${BUILDKITE_BRANCH:-default}"
+META_KEY="last-successful-sha--${BRANCH_NAME}"
+
+# Try to retrieve previous successful SHA
+LAST_SUCCESSFUL_SHA=$(buildkite-agent meta-data get "$META_KEY" || true)
+
+CHANGELOG=""
+
+if [[ -n "$LAST_SUCCESSFUL_SHA" ]]; then
+  echo "Last successful SHA on branch '$BRANCH_NAME': $LAST_SUCCESSFUL_SHA"
+  CHANGELOG=$(git log "${LAST_SUCCESSFUL_SHA}..${CURRENT_SHA}" --pretty=format:"- %h %an: %s")
+else
+  echo "No last successful SHA found, showing last ${FALLBACK_COUNT} commits"
+  CHANGELOG=$(git log -n "$FALLBACK_COUNT" --pretty=format:"- %h %an: %s")
+fi
+
+if [[ -z "$CHANGELOG" ]]; then
+  CHANGELOG="No new commits since last successful build."
+fi
+
+echo "$CHANGELOG"
+
+if [[ "$SHOW_ANNOTATION" == "true" ]]; then
+  buildkite-agent annotate --style "info" "### Commits since last successful build on \`$BRANCH_NAME\`  
+$CHANGELOG"
+fi
