@@ -4,7 +4,7 @@ set -euo pipefail
 
 echo "--- Saving current commit SHA as last successful build"
 
-# Only run if build has passed
+# Only run if build has passed. This logic needs to go to pre exit hook.
 if [[ "$BUILDKITE_JOB_EXIT_STATUS" == "0" ]]; then
   BRANCH_NAME="${BUILDKITE_BRANCH:-default}"
   META_KEY="last-successful-sha--${BRANCH_NAME}"
