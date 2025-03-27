@@ -1,0 +1,51 @@
+#!/bin/bash
+set -euo pipefail
+source "$(dirname "$0")/../lib/graphql.sh"
+
+ORGANIZATION="${BUILDKITE_PLUGIN_ORGANIZATION:-}"
+PIPELINE="${BUILDKITE_PLUGIN_PIPELINE:-}"
+BRANCH="${BUILDKITE_PLUGIN_BRANCH:-main}"
+STATE="${BUILDKITE_PLUGIN_STATE:-}"
+FROM_COMMIT="${BUILDKITE_PLUGIN_FROM:-}"
+TO_COMMIT="${BUILDKITE_PLUGIN_TO:-}"
+
+if [[ -z "$TO_COMMIT" ]]; then
+  TO_COMMIT="$(git rev-parse HEAD)"
+fi
+
+API_TOKEN=""
+if [[ -z "$FROM_COMMIT" ]]; then
+  echo "--- Retrieving API token from Buildkite secrets"
+  API_TOKEN="$(buildkite-agent secret get changes_api_token || true)"
+  if [[ -z "$API_TOKEN" ]]; then
+    echo "🚨 API token required unless 'from' commit is provided"
+    exit 1
+  fi
+fi
+
+if [[ -z "$FROM_COMMIT" ]]; then
+  if [[ -z "$STATE" ]]; then
+    echo "--- No state provided. Auto-detecting last build state..."
+    STATE=$(get_latest_build_state "$ORGANIZATION" "$PIPELINE" "$BRANCH" "$API_TOKEN")
+  fi
+
+  echo "--- Fetching last commit for $BRANCH with state: $STATE"
+  FROM_COMMIT=$(get_last_commit_from_buildkite "$ORGANIZATION" "$PIPELINE" "$BRANCH" "$STATE" "$API_TOKEN")
+fi
+
+echo "--- Comparing commits"
+echo "    From: $FROM_COMMIT"
+echo "    To:   $TO_COMMIT"
+
+if [[ -n "$FROM_COMMIT" && "$FROM_COMMIT" == "$TO_COMMIT" ]]; then
+  echo "✅ No new commits. Skipping build."
+  buildkite-agent annotate "🟢 No new commits since last successful build on \`$BRANCH\`. Skipping the rest of the build." --style "info"
+  buildkite-agent pipeline upload <<YAML
+steps: []
+YAML
+  exit 0
+fi
+
+# Export for use in command hook
+echo "export FROM_COMMIT=$FROM_COMMIT" >> "$BUILDKITE_ENV_FILE"
+echo "export TO_COMMIT=$TO_COMMIT" >> "$BUILDKITE_ENV_FILE"
