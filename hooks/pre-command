@@ -65,7 +65,7 @@ get_last_commit_from_buildkite() {
 EOF
 )
 
-  echo "--- Sending GraphQL query to fetch last commit with state: $state"
+  echo "Sending GraphQL query to fetch last commit with state: $state"
   echo "$query"
 
  local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
