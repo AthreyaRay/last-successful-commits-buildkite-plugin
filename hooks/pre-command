@@ -25,9 +25,9 @@ EOF
   echo "$query"
 
   local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
-    -H "Authorization: Bearer $token" \
-    -H "Content-Type: application/json" \
-    -d "{\"query\": \"$query\"}")
+  -H "Authorization: Bearer $token" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg q "$query" '{query: $q}')")
 
   echo "--- Raw response from Buildkite GraphQL (state query):"
   echo "$response" | jq .
@@ -68,10 +68,11 @@ EOF
   echo "--- Sending GraphQL query to fetch last commit with state: $state"
   echo "$query"
 
-  local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
-    -H "Authorization: Bearer $token" \
-    -H "Content-Type: application/json" \
-    -d "{\"query\": \"$query\"}")
+ local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
+  -H "Authorization: Bearer $token" \
+  -H "Content-Type: application/json" \
+  -d "$(jq -n --arg q "$query" '{query: $q}')")
+
 
   echo "--- Raw response from Buildkite GraphQL (commit query):"
   echo "$response" | jq .
