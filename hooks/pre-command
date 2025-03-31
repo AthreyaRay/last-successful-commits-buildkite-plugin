@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-source "$BUILDKITE_PLUGIN_PATH/lib/graphql.sh"
+source "$$BUILDKITE_PLUGIN_PATH/lib/graphql.sh"
 
 ORGANIZATION="${BUILDKITE_PLUGIN_ORGANIZATION:-}"
 PIPELINE="${BUILDKITE_PLUGIN_PIPELINE:-}"
