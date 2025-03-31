@@ -21,13 +21,20 @@ get_latest_build_state() {
 EOF
 )
 
+  echo "--- Sending GraphQL query to fetch latest build state..."
+  echo "$query"
+
   local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
     -d "{\"query\": \"$query\"}")
 
+  echo "--- Raw response from Buildkite GraphQL (state query):"
+  echo "$response" | jq .
+
   echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.state'
 }
+
 
 get_last_commit_from_buildkite() {
   local org="$1"
@@ -58,10 +65,16 @@ get_last_commit_from_buildkite() {
 EOF
 )
 
+  echo "--- Sending GraphQL query to fetch last commit with state: $state"
+  echo "$query"
+
   local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
     -d "{\"query\": \"$query\"}")
+
+  echo "--- Raw response from Buildkite GraphQL (commit query):"
+  echo "$response" | jq .
 
   echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.commit'
 }
