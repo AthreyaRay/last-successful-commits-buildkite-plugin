@@ -1,6 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
+SHOW_ANNOTATION=true
+INCLUDE_DIFF=true
+FALLBACK_COMMIT_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-5}"
+
+ORGANIZATION="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_ORGANIZATION:-}"
+PIPELINE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_PIPELINE:-}"
+BRANCH="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_BRANCH:-main}"
+STATE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_STATE:-}"
+FROM_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_FROM:-}"
+TO_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_TO:-$(git rev-parse HEAD)}"
+
 get_last_commit_from_buildkite() {
   local org="$1"
   local pipeline="$2"
@@ -12,7 +23,6 @@ get_last_commit_from_buildkite() {
   if [[ -n "$state" ]]; then
     state_filter="state: [$state],"
   else
-    # Default: exclude RUNNING builds
     state_filter="state: [PASSED, FAILED, CANCELED, SCHEDULED, BLOCKED],"
   fi
 
@@ -47,18 +57,7 @@ EOF
   echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.commit // empty'
 }
 
-ORGANIZATION="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_ORGANIZATION:-}"
-PIPELINE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_PIPELINE:-}"
-BRANCH="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_BRANCH:-main}"
-STATE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_STATE:-}"
-FROM_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_FROM:-}"
-TO_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_TO:-}"
-
-if [[ -z "$TO_COMMIT" ]]; then
-  TO_COMMIT="$(git rev-parse HEAD)"
-fi
-
-API_TOKEN=""
+# Fetch FROM_COMMIT if not given
 if [[ -z "$FROM_COMMIT" ]]; then
   echo "--- Retrieving API token from Buildkite secrets"
   API_TOKEN="$(buildkite-agent secret get changes_api_token || true)"
@@ -66,9 +65,7 @@ if [[ -z "$FROM_COMMIT" ]]; then
     echo "🚨 API token required unless 'from' commit is provided"
     exit 1
   fi
-fi
 
-if [[ -z "$FROM_COMMIT" ]]; then
   echo "--- Fetching last commit for $BRANCH (state: ${STATE:-default})"
   FROM_COMMIT=$(get_last_commit_from_buildkite "$ORGANIZATION" "$PIPELINE" "$BRANCH" "$STATE" "$API_TOKEN")
 fi
@@ -86,6 +83,46 @@ YAML
   exit 0
 fi
 
-# Export for use in command hook
-echo "export FROM_COMMIT=$FROM_COMMIT" >> "$BUILDKITE_ENV_FILE"
-echo "export TO_COMMIT=$TO_COMMIT" >> "$BUILDKITE_ENV_FILE"
+# Generate changelog
+echo "--- Generating changelog"
+if [[ -z "$FROM_COMMIT" || "$FROM_COMMIT" == "null" ]]; then
+  echo "⚠️ No prior commit found — showing last $FALLBACK_COMMIT_COUNT commits"
+  CHANGELOG=$(git log -n "$FALLBACK_COMMIT_COUNT" --pretty=format:"- %h %an: %s")
+else
+  CHANGELOG=$(git log "${FROM_COMMIT}..${TO_COMMIT}" --pretty=format:"- %h %an: %s")
+fi
+
+if [[ -z "$CHANGELOG" || "$CHANGELOG" == $'\n' ]]; then
+  CHANGELOG="(No new commits found)"
+fi
+
+# Optional file diff
+if [[ -n "$FROM_COMMIT" && "$INCLUDE_DIFF" == "true" ]]; then
+  echo "--- Checking for changed files"
+  FILE_DIFF=$(git diff --name-status "${FROM_COMMIT}..${TO_COMMIT}" || true)
+
+  if [[ -n "$FILE_DIFF" && "$FILE_DIFF" != $'\n' ]]; then
+    echo "$FILE_DIFF"
+    CHANGELOG+="
+
+🗂️ **Changed Files:**
+\`\`\`
+$FILE_DIFF
+\`\`\`
+"
+  else
+    echo "--- No file changes detected"
+    CHANGELOG+="
+
+🗂️ **Changed Files:**
+(none)"
+  fi
+fi
+
+# Annotate
+if [[ "$SHOW_ANNOTATION" == "true" ]]; then
+  buildkite-agent annotate --style "info" "### 🚀 Commits between:
+\`${FROM_COMMIT:-<unknown>}\` → \`$TO_COMMIT\`
+
+$CHANGELOG"
+fi
