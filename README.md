@@ -31,7 +31,7 @@ You can authenticate in two ways:
 
 ### 1. Direct input (recommended)
 
-Pass the API token directly via the plugin config:
+Pass the API token using preferred retrieval method to the plugin config:
 
 ```yaml
 changes_api_token: "your-buildkite-api-token"
