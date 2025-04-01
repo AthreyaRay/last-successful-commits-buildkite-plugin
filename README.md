@@ -55,7 +55,7 @@ If neither the changes_api_token nor the from commit is provided, the plugin wil
 steps:
   - label: "Changelog and change detection"
     plugins:
-      - rayaprolu/last-successful-commits#v2.2.0:
+      - rayaprolu/last-successful-commits#v2.3.4:
           organization: "my-org"
           pipeline: "my-pipeline"
 ```
@@ -66,7 +66,7 @@ steps:
 steps:
   - label: "Smart CI skip"
     plugins:
-      - rayaprolu/last-successful-commits#v2.2.0:
+      - rayaprolu/last-successful-commits#v2.3.4:
           organization: "my-org"
           pipeline: "my-pipeline"
           branch: "develop"
