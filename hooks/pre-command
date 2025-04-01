@@ -47,7 +47,7 @@ get_last_commit_from_buildkite() {
 
   local state_filter=""
   if [[ -n "$state" ]]; then
-    state_filter="state: $state,"
+    state_filter="state: \"$state\","
   fi
 
   local query=$(cat <<EOF
@@ -78,9 +78,9 @@ EOF
   echo "--- Raw response from Buildkite GraphQL (commit query):"
   echo "$response" | jq .
 
-  local commit=$(echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.commit // empty')
-  echo "$commit"
+  echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.commit // empty'
 }
+
 
 
 
