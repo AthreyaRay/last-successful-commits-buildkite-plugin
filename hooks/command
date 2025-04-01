@@ -1,54 +1,54 @@
-#!/bin/bash
-set -euo pipefail
+# #!/bin/bash
+# set -euo pipefail
 
-SHOW_ANNOTATION=true
-INCLUDE_DIFF=true
-FALLBACK_COMMIT_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-5}"
+# SHOW_ANNOTATION=true
+# INCLUDE_DIFF=true
+# FALLBACK_COMMIT_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-5}"
 
-FROM="${FROM_COMMIT:-}"
-TO="${TO_COMMIT:-$(git rev-parse HEAD)}"
+# FROM="${FROM_COMMIT:-}"
+# TO="${TO_COMMIT:-$(git rev-parse HEAD)}"
 
-echo "--- Processing changelog"
-echo "FROM_COMMIT received: ${FROM:-<none>}"
-echo "TO_COMMIT resolved as: $TO"
+# echo "--- Processing changelog"
+# echo "FROM_COMMIT received: ${FROM:-<none>}"
+# echo "TO_COMMIT resolved as: $TO"
 
-if [[ -z "$FROM" || "$FROM" == "null" ]]; then
-  echo "⚠️ No prior commit found — showing last $FALLBACK_COMMIT_COUNT commits"
-  CHANGELOG=$(git log -n "$FALLBACK_COMMIT_COUNT" --pretty=format:"- %h %an: %s")
-else
-  CHANGELOG=$(git log "${FROM}..${TO}" --pretty=format:"- %h %an: %s")
-fi
+# if [[ -z "$FROM" || "$FROM" == "null" ]]; then
+#   echo "⚠️ No prior commit found — showing last $FALLBACK_COMMIT_COUNT commits"
+#   CHANGELOG=$(git log -n "$FALLBACK_COMMIT_COUNT" --pretty=format:"- %h %an: %s")
+# else
+#   CHANGELOG=$(git log "${FROM}..${TO}" --pretty=format:"- %h %an: %s")
+# fi
 
-if [[ -z "$CHANGELOG" || "$CHANGELOG" == $'\n' ]]; then
-  CHANGELOG="(No new commits found)"
-fi
+# if [[ -z "$CHANGELOG" || "$CHANGELOG" == $'\n' ]]; then
+#   CHANGELOG="(No new commits found)"
+# fi
 
-if [[ -n "$FROM" ]]; then
-  echo "--- Checking for changed files"
-  FILE_DIFF=$(git diff --name-status "${FROM}..${TO}" || true)
+# if [[ -n "$FROM" ]]; then
+#   echo "--- Checking for changed files"
+#   FILE_DIFF=$(git diff --name-status "${FROM}..${TO}" || true)
 
-  if [[ -n "$FILE_DIFF" && "$FILE_DIFF" != $'\n' ]]; then
-    echo "--- Found changed files:"
-    echo "$FILE_DIFF"
-    CHANGELOG+="
+#   if [[ -n "$FILE_DIFF" && "$FILE_DIFF" != $'\n' ]]; then
+#     echo "--- Found changed files:"
+#     echo "$FILE_DIFF"
+#     CHANGELOG+="
 
-🗂️ **Changed Files:**
-\`\`\`
-$FILE_DIFF
-\`\`\`
-"
-  else
-    echo "--- No file changes detected"
-    CHANGELOG+="
+# 🗂️ **Changed Files:**
+# \`\`\`
+# $FILE_DIFF
+# \`\`\`
+# "
+#   else
+#     echo "--- No file changes detected"
+#     CHANGELOG+="
 
-🗂️ **Changed Files:**
-(none)"
-  fi
-fi
+# 🗂️ **Changed Files:**
+# (none)"
+#   fi
+# fi
 
-if [[ "$SHOW_ANNOTATION" == "true" ]]; then
-  buildkite-agent annotate --style "info" "### 🚀 Commits between:
-\`${FROM:-<unknown>}\` → \`$TO\`
+# if [[ "$SHOW_ANNOTATION" == "true" ]]; then
+#   buildkite-agent annotate --style "info" "### 🚀 Commits between:
+# \`${FROM:-<unknown>}\` → \`$TO\`
 
-$CHANGELOG"
-fi
+# $CHANGELOG"
+# fi
