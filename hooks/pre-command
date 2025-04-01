@@ -11,6 +11,7 @@ BRANCH="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_BRANCH:-main}"
 STATE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_STATE:-}"
 FROM_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_FROM:-}"
 TO_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_TO:-$(git rev-parse HEAD)}"
+DETAILED="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_DETAILED:-false}"
 
 get_last_commit_from_buildkite() {
   local org="$1"
@@ -98,8 +99,12 @@ fi
 
 # Optional file diff
 if [[ -n "$FROM_COMMIT" && "$INCLUDE_DIFF" == "true" ]]; then
-  echo "--- Checking for changed files"
-  FILE_DIFF=$(git diff --name-status "${FROM_COMMIT}..${TO_COMMIT}" || true)
+  echo "--- Checking for changed files (detailed: $DETAILED)"
+  if [[ "$DETAILED" == "true" ]]; then
+    FILE_DIFF=$(git diff "${FROM_COMMIT}..${TO_COMMIT}" || true)
+  else
+    FILE_DIFF=$(git diff --name-status "${FROM_COMMIT}..${TO_COMMIT}" || true)
+  fi
 
   if [[ -n "$FILE_DIFF" && "$FILE_DIFF" != $'\n' ]]; then
     echo "$FILE_DIFF"
