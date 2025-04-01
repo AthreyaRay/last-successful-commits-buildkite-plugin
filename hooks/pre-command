@@ -12,6 +12,7 @@ STATE="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_STATE:-}"
 FROM_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_FROM:-}"
 TO_COMMIT="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_TO:-$(git rev-parse HEAD)}"
 DETAILED="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_DETAILED:-false}"
+EXPLICIT_TOKEN="${BUILDKITE_PLUGIN_LAST_SUCCESSFUL_COMMITS_CHANGES_API_TOKEN:-}"
 
 get_last_commit_from_buildkite() {
   local org="$1"
@@ -60,10 +61,15 @@ EOF
 
 # Fetch FROM_COMMIT if not given
 if [[ -z "$FROM_COMMIT" ]]; then
-  echo "--- Retrieving API token from Buildkite secrets"
-  API_TOKEN="$(buildkite-agent secret get changes_api_token || true)"
+  API_TOKEN="$EXPLICIT_TOKEN"
+
   if [[ -z "$API_TOKEN" ]]; then
-    echo "🚨 API token required unless 'from' commit is provided"
+    echo "--- No token passed via plugin config. Trying Buildkite secret 'changes_api_token'..."
+    API_TOKEN="$(buildkite-agent secret get changes_api_token || true)"
+  fi
+
+  if [[ -z "$API_TOKEN" ]]; then
+    echo "❌ API token is required (either via 'changes_api_token' plugin input or Buildkite secret)"
     exit 1
   fi
 
