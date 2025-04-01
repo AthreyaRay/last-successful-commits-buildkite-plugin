@@ -21,20 +21,20 @@ get_latest_build_state() {
 EOF
 )
 
-  echo "--- Sending GraphQL query to fetch latest build state..."
-  echo "$query"
+  >&2 echo "--- Sending GraphQL query to fetch latest build state..."
+  >&2 echo "$query"
 
   local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg q "$query" '{query: $q}')")
 
-  echo "--- Raw response from Buildkite GraphQL (state query):"
-  echo "$response" | jq .
+  >&2 echo "--- Raw response from Buildkite GraphQL (state query):"
+  >&2 echo "$response" | jq .
 
-  local state=$(echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.state // empty')
-  echo "$state"
+  echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.state // empty'
 }
+
 
 
 
@@ -67,16 +67,16 @@ get_last_commit_from_buildkite() {
 EOF
 )
 
-  echo "--- Sending GraphQL query to fetch last commit with state: $state"
-  echo "$query"
+  >&2 echo "--- Sending GraphQL query to fetch last commit with state: $state"
+  >&2 echo "$query"
 
   local response=$(curl -sS -X POST https://graphql.buildkite.com/v1 \
     -H "Authorization: Bearer $token" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg q "$query" '{query: $q}')")
 
-  echo "--- Raw response from Buildkite GraphQL (commit query):"
-  echo "$response" | jq .
+  >&2 echo "--- Raw response from Buildkite GraphQL (commit query):"
+  >&2 echo "$response" | jq .
 
   echo "$response" | jq -r '.data.pipeline.builds.edges[0].node.commit // empty'
 }
