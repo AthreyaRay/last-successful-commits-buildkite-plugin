@@ -3,28 +3,32 @@ set -euo pipefail
 
 SHOW_ANNOTATION=true
 INCLUDE_DIFF=true
-FALLBACK_COMMIT_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-10}"
+FALLBACK_COMMIT_COUNT="${BUILDKITE_PLUGIN_FALLBACK_COMMIT_COUNT:-5}"
 
-FROM_COMMIT="${FROM_COMMIT:-}"
-TO_COMMIT="${TO_COMMIT:-$(git rev-parse HEAD)}"
+FROM="${FROM_COMMIT:-}"
+TO="${TO_COMMIT:-$(git rev-parse HEAD)}"
 
-echo "--- Generating changelog"
-if [[ -z "$FROM_COMMIT" || "$FROM_COMMIT" == "null" ]]; then
+echo "--- Processing changelog"
+echo "FROM_COMMIT received: ${FROM:-<none>}"
+echo "TO_COMMIT resolved as: $TO"
+
+if [[ -z "$FROM" || "$FROM" == "null" ]]; then
   echo "⚠️ No prior commit found — showing last $FALLBACK_COMMIT_COUNT commits"
   CHANGELOG=$(git log -n "$FALLBACK_COMMIT_COUNT" --pretty=format:"- %h %an: %s")
 else
-  CHANGELOG=$(git log "${FROM_COMMIT}..${TO_COMMIT}" --pretty=format:"- %h %an: %s")
+  CHANGELOG=$(git log "${FROM}..${TO}" --pretty=format:"- %h %an: %s")
 fi
 
 if [[ -z "$CHANGELOG" || "$CHANGELOG" == $'\n' ]]; then
   CHANGELOG="(No new commits found)"
 fi
 
-if [[ -n "$FROM_COMMIT" ]]; then
+if [[ -n "$FROM" ]]; then
   echo "--- Checking for changed files"
-  FILE_DIFF=$(git diff --name-status "${FROM_COMMIT}..${TO_COMMIT}" || true)
+  FILE_DIFF=$(git diff --name-status "${FROM}..${TO}" || true)
 
   if [[ -n "$FILE_DIFF" && "$FILE_DIFF" != $'\n' ]]; then
+    echo "--- Found changed files:"
     echo "$FILE_DIFF"
     CHANGELOG+="
 
@@ -44,7 +48,7 @@ fi
 
 if [[ "$SHOW_ANNOTATION" == "true" ]]; then
   buildkite-agent annotate --style "info" "### 🚀 Commits between:
-\`$FROM_COMMIT\` → \`$TO_COMMIT\`
+\`${FROM:-<unknown>}\` → \`$TO\`
 
 $CHANGELOG"
 fi
