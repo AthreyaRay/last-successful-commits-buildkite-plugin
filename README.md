@@ -72,7 +72,7 @@ steps:
           branch: "develop"
           state: "PASSED"
           from: "" ## Commit info if you have it, else skip this to fetch the last commit
-          to: ""   ## Commit info if you have it, else skip this to fetch the last commit
+          to: ""   ## Commit info if you have it, else skip this to fetch the latest/current commit
           fallback-commit-count: 10
           detailed: true
           changes_api_token: "your-buildkite-api-token"
