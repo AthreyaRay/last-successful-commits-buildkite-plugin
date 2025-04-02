@@ -71,8 +71,8 @@ steps:
           pipeline: "my-pipeline"
           branch: "develop"
           state: "PASSED"
-          from: ""
-          to: ""
+          from: "" ## Commit info if you have it, else skip this to fetch the last commit
+          to: ""   ## Commit info if you have it, else skip this to fetch the last commit
           fallback-commit-count: 10
           detailed: true
           changes_api_token: "your-buildkite-api-token"
