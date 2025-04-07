@@ -1,0 +1,45 @@
+name: last-successful-commits
+version: "2.3.4"
+description: A Buildkite plugin to fetch and compare commits based on the last non-running build in a pipeline.
+author: https://github.com/AthreyaRay
+requirements:
+- curl
+- jq
+
+configuration:
+  properties:
+    organization:
+      type: string
+      description: The Buildkite organization slug
+    pipeline:
+      type: string
+      description: The name of the pipeline to find the last matching commit for
+    branch:
+      type: string
+      default: main
+      description: The branch to check (defaults to main)
+    state:
+      type: string
+      enum: [ "PASSED", "FAILED", "CANCELED", "SCHEDULED", "BLOCKED" ]
+      description: Filter builds by state. If not specified, defaults to all non-RUNNING builds.
+    from:
+      type: string
+      description: Commit SHA to start the comparison from
+    to:
+      type: string
+      description: Commit SHA to compare to (defaults to HEAD)
+    fallback-commit-count:
+      type: integer
+      default: 5
+      description: How many commits to show if no previous build is found
+    detailed:
+      type: boolean
+      default: false
+      description: Show full diff instead of just changed file paths
+    changes_api_token:
+      type: string
+      description: Buildkite GraphQL API token (if not provided, plugin will try to use Buildkite secret `changes_api_token`)
+  required:
+  - organization
+  - pipeline
+  additionalProperties: false
